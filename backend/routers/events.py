@@ -35,4 +35,9 @@ async def create_event(event: schemas.User_Event,request:Request, db: Session = 
         "created_at" : str(db_event.created_at)
     }))
     return db_event
+@router.delete("/")
+def delete_all_events(db: Session = Depends(get_db)):
+    db.query(models.Event).delete()
+    db.commit()
+    return {"Message: All events was deleted"}
 

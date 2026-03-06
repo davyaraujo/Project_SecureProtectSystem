@@ -26,6 +26,15 @@ services:
     environment:
       DATABASE_URL: postgresql://admin:admin123@postgres:5432/securevision
       REDIS_URL: redis://redis:6379
+  detector:
+    build: ./ml
+    depends_on:
+      - backend
+    environment:
+      VIDEO_PATH: /app/video/13384448_1920_1080_30fps.mp4
+      API_URL: http://backend:8000
+    volumes:
+      - ./ml:/app 
 
 volumes:
   postgres_data:
