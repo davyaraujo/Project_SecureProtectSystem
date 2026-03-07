@@ -26,15 +26,61 @@ services:
     environment:
       DATABASE_URL: postgresql://admin:admin123@postgres:5432/securevision
       REDIS_URL: redis://redis:6379
-  detector:
-    build: ./ml
+    networks:
+      - ros_network
+      - default
+  # detector:
+  #   build: ./ml
+  #   depends_on:
+  #     - backend
+  #   environment:
+  #     VIDEO_PATH: /app/video/13384448_1920_1080_30fps.mp4
+  #     API_URL: http://backend:8000
+  #   volumes:
+  #     - ./ml:/app
+  roscore:
+    image: ros:noetic-ros-base
+    command: roscore
+    networks:
+      - ros_network
+
+  camera_node:
+    build: ./ros_ws
     depends_on:
+      - roscore
+    environment:
+      ROS_MASTER_URI: http://roscore:11311
+      VIDEO_PATH: /app/video/13384448_1920_1080_30fps.mp4
+    volumes:
+      - ./ml:/app
+    command: >
+      /bin/bash -c "source /opt/ros/noetic/setup.bash &&
+      source devel/setup.bash &&
+      python3 src/camera_node/scripts/camera_publisher.py"
+    networks:
+      - ros_network
+
+  detection_bridge:
+    build: ./ros_ws
+    depends_on:
+      - roscore
+      - camera_node
       - backend
     environment:
-      VIDEO_PATH: /app/video/13384448_1920_1080_30fps.mp4
+      ROS_MASTER_URI: http://roscore:11311
       API_URL: http://backend:8000
-    volumes:
-      - ./ml:/app 
+    command: >
+      /bin/bash -c "source /opt/ros/noetic/setup.bash &&
+      source devel/setup.bash &&
+      python3 src/detection_bridge/scripts/detection_subscriber.py"
+    networks:
+      - ros_network
+
+networks:
+  ros_network:
+    driver: bridge
+  default:
+    driver: bridge
 
 volumes:
   postgres_data:
